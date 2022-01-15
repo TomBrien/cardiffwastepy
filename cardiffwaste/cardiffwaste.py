@@ -47,11 +47,11 @@ class WasteCollections:
         client.request("OPTIONS", url_collections, headers=headers_get_waste_cookies)
         return client
 
-    def _get_collections(self) -> NextCollections:
+    def get_collections(self) -> NextCollections:
         """Get collection details."""
 
         client = self._get_cookied_session()
-        jwt = self.g_et_token()
+        jwt = self._get_token()
         headers_waste_collections["Authorization"] = f"Bearer {jwt}"
         headers_waste_collections["User-Agent"] = self._user_agent
         payload_waste_collections["uprn"] = self._uprn

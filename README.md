@@ -6,9 +6,9 @@ This is a highly-juvenile package to collect upcoming waste collections for an a
 
 ## Installation
 
-'''
+```
 pip install cardiffwaste
-'''
+```
 
 ## Usage
 
