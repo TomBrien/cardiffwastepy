@@ -34,3 +34,7 @@ Four collection types are currently handled, which are `general`, `recycling`, `
 | `collection_date` | `datetime.date` | Date of next collection | Yes |
 | `collection_type` | `str` | `scheduled` or `rescheduled` depending on if planned has been missed | Yes |
 | `image` | `str` | URL of a representation of the collection type | Yes |
+
+## Contributing
+
+My current plans are to get this to what might actually be called a stable state and sort out CI/CD. I also will implement hygiene collection details and perhaps a uprn lookup.
