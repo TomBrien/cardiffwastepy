@@ -28,7 +28,7 @@ class WasteCollections:
         self._uprn: int = int(uprn) if isinstance(uprn, str) else uprn
         self._user_agent: str = UserAgent("desktop").Random()
 
-    def get_token(self) -> str:
+    def _get_token(self) -> str:
         """Get an access token."""
 
         headers_get_jwt["User-Agent"] = self._user_agent
@@ -39,7 +39,7 @@ class WasteCollections:
         result = json.loads(xml.find("GetJWTResult").get_text())
         return result["access_token"]
 
-    def get_cookied_session(self) -> httpx.Client:
+    def _get_cookied_session(self) -> httpx.Client:
         """Start a session and collect required cookies."""
 
         client = httpx.Client()
@@ -47,11 +47,11 @@ class WasteCollections:
         client.request("OPTIONS", url_collections, headers=headers_get_waste_cookies)
         return client
 
-    def get_collections(self) -> NextCollections:
+    def _get_collections(self) -> NextCollections:
         """Get collection details."""
 
-        client = self.get_cookied_session()
-        jwt = self.get_token()
+        client = self._get_cookied_session()
+        jwt = self.g_et_token()
         headers_waste_collections["Authorization"] = f"Bearer {jwt}"
         headers_waste_collections["User-Agent"] = self._user_agent
         payload_waste_collections["uprn"] = self._uprn
