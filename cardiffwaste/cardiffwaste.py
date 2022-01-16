@@ -25,7 +25,7 @@ class WasteCollections:
     def __init__(self, uprn: int | str) -> None:
         """Initiate getter parameters."""
 
-        self._uprn: int = int(uprn) if isinstance(uprn, str) else uprn
+        self.uprn: int = int(uprn) if isinstance(uprn, str) else uprn
         self._user_agent: str = UserAgent("desktop").Random()
 
     def _get_token(self) -> str:
@@ -54,7 +54,7 @@ class WasteCollections:
         jwt = self._get_token()
         headers_waste_collections["Authorization"] = f"Bearer {jwt}"
         headers_waste_collections["User-Agent"] = self._user_agent
-        payload_waste_collections["uprn"] = self._uprn
+        payload_waste_collections["uprn"] = self.uprn
         response = client.request(
             "POST",
             url_collections,
