@@ -1,0 +1,35 @@
+name: Build and release images
+
+on:
+  workflow_dispatch:
+  release:
+    types: ["released"]
+
+env:
+  DEFAULT_PYTHON: 3.9
+
+jobs:
+  build_python:
+    name: Build PyPi package
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2.4.0
+
+      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+        uses: actions/setup-python@v2.3.1
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+
+      - name: Build package
+        shell: bash
+        run: |
+          pip install twine wheel setuptools>=42 build
+          python -m build
+      - name: Upload package
+        shell: bash
+        run: |
+          export TWINE_USERNAME="__token__"
+          export TWINE_PASSWORD="${{ secrets.TWINE_TOKEN }}"
+          twine upload dist/* --skip-existing
