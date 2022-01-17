@@ -1,4 +1,4 @@
 """Initiate directory"""
-from cardiffwaste.cardiffwaste import Bin, NextCollections, WasteCollections
+from cardiffwaste.cardiffwaste import WasteCollections
 
 __version__ = "0.1.0b6"

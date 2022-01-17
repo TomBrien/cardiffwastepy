@@ -5,7 +5,9 @@ Created on Sat Jan 15 12:04:21 2022
 @author: tom
 """
 
-payload_get_jwt: str = (
+from typing import Final
+
+PAYLOAD_GET_JWT: Final[str] = (
     "<?xml version='1.0' encoding='utf-8'?>"
     "<soap:Envelope xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'"
     " xmlns:xsd='http://www.w3.org/2001/XMLSchema'"
@@ -30,11 +32,13 @@ headers_get_jwt = {
     "Accept-Language": "en-GB,en;q=0.9",
 }
 
-url_get_jwt = (
-    "https://authwebservice.cardiff.gov.uk/AuthenticationWebService.asmx?op=GetJWT"
-)
+URL_GET_JWT: Final[
+    str
+] = "https://authwebservice.cardiff.gov.uk/AuthenticationWebService.asmx?op=GetJWT"
 
-url_collections = "https://api.cardiff.gov.uk/WasteManagement/api/WasteCollection"
+URL_COLLECTIONS: Final[
+    str
+] = "https://api.cardiff.gov.uk/WasteManagement/api/WasteCollection"
 
 headers_get_waste_cookies = {
     "Connection": "keep-alive",
@@ -58,7 +62,6 @@ headers_waste_collections = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
     "Content-Type": "application/json; charset=UTF-8",
     "sec-ch-ua-mobile": "?0",
-    "User-Agent": "None",
     "Origin": "https://www.cardiff.gov.uk",
     "Sec-Fetch-Site": "same-site",
     "Sec-Fetch-Mode": "cors",
