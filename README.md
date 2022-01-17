@@ -18,22 +18,21 @@ Currently you are required to know your Unique Property Reference Number (UPRN),
 from cardiffwaste import WasteCollections
 
 address = WasteCollections(123456789012)
-collections = address.get_collections()
+collections = address.get_next_collections()
 
-print(collections.general.collection_date)
+print(collections["general"]["collection_date"])
 # 2022-01-15
 
 ```
 
-Four collection types are currently handled, which are `general`, `recycling`, `food`, `garden`. If a collection date was found, each collection type will have the `loaded` attribute set to `True`. `loaded = False` means no collection is scheduled. For scheduled collections, each collection will have the following attributes:
+Four collection types are currently handled, which are `general`, `recycling`, `food`, `garden`. These keys will only be present if a collection is scheduled in the next 4 weeks. For scheduled collections, each collection will have the following keys:
 
-| Attribute | Type | Description | Only present when loaded |
-| --- | --- | --- |--- |
-| `loaded` | `bool` | Indicates if collection details were found | No |
-| `type` | `str` | The collection type (`general`, `recycling`, `food`, or `garden`) | No |
-| `collection_date` | `datetime.date` | Date of next collection | Yes |
-| `collection_type` | `str` | `scheduled` or `rescheduled` depending on if planned has been missed | Yes |
-| `image` | `str` | URL of a representation of the collection type | Yes |
+| Attribute | Value Type | Description |
+| --- | --- | --- |
+| `type` | `str` | The collection type (`general`, `recycling`, `food`, or `garden`) |
+| `collection_date` | `datetime.date` | Date of next collection |
+| `collection_type` | `str` | `scheduled` or `rescheduled` depending on if planned has been missed |
+| `image` | `str` | URL of a representation of the collection type |
 
 ## Contributing
 
