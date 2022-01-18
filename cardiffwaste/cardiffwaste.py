@@ -50,8 +50,8 @@ class WasteCollections:
     def get_raw_collections(self) -> dict:
         """Get all known collections from API and do minimal tidying."""
 
-        client = self._get_cookied_session()
         jwt = self._get_token()
+        client = self._get_cookied_session()
         headers_waste_collections["Authorization"] = f"Bearer {jwt}"
         headers_waste_collections["User-Agent"] = self._user_agent
         payload_waste_collections["uprn"] = self.uprn
@@ -66,8 +66,25 @@ class WasteCollections:
         raw["response_code"] = response.status_code
         return raw
 
+    def check_valid_uprn(self) -> bool:
+        """Helper to check if UPRN returns valid data."""
+
+        jwt = self._get_token()
+        client = self._get_cookied_session()
+        headers_waste_collections["Authorization"] = f"Bearer {jwt}"
+        headers_waste_collections["User-Agent"] = self._user_agent
+        payload_waste_collections["uprn"] = self.uprn
+        response = client.request(
+            "POST",
+            URL_COLLECTIONS,
+            headers=headers_waste_collections,
+            data=json.dumps(payload_waste_collections),
+        )
+
+        return bool(response.status_code == 200 and "collectionWeeks" in response.text)
+
     def get_next_collections(self) -> dict:
-        """Get collection details and return in ."""
+        """Get collection details and return in."""
 
         next_collections = {}
 
