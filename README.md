@@ -2,7 +2,7 @@
 
 ## About
 
-This is a highly-juvenile package to collect upcoming waste collections for an addresses served by Cardiff Council.
+This is a simple package to collect upcoming waste collections for an addresses served by Cardiff Council.
 
 ## Installation
 
@@ -25,7 +25,7 @@ print(collections["general"]["collection_date"])
 
 ```
 
-Four collection types are currently handled, which are `general`, `recycling`, `food`, `garden`. These keys will only be present if a collection is scheduled in the next 4 weeks. For scheduled collections, each collection will have the following keys:
+Five collection types are currently handled, which are `general`, `recycling`, `food`, `garden` and `hygiene`. These keys will only be present if a collection is scheduled in the next 4 weeks. For scheduled collections, each collection will have the following keys:
 
 | Attribute | Value Type | Description |
 | --- | --- | --- |
@@ -36,4 +36,4 @@ Four collection types are currently handled, which are `general`, `recycling`, `
 
 ## Contributing
 
-My current plans are to get this to what might actually be called a stable state and sort out CI/CD. I also will implement hygiene collection details and perhaps a uprn lookup.
+My current plans are to get this to what might actually be called a stable state and sort out CI.
