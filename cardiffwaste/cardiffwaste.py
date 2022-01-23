@@ -29,7 +29,7 @@ _LOGGER = logging.getLogger(__name__)
 def _get_cookied_search_session(user_agent) -> httpx.Client:
     """Start a session and collect required cookies for searches."""
 
-    client = httpx.Client(timeout=2)
+    client = httpx.Client(timeout=20)
     headers_get_waste_cookies["User-Agent"] = user_agent
     _LOGGER.debug("Attempting to get collection cookies")
     client.request("OPTIONS", URL_SEARCH, headers=headers_get_search_cookies)
@@ -105,6 +105,9 @@ def address_search(search_term: str) -> dict[int, str]:
         raise Timeout(
             f"Timed out searching for address {search_term}"
         ) from search_timed_out
+
+    if response.status_code == 204:
+        raise EmptyMatches(message=f"No matches for {search_term}")
 
     matches = {
         address["uprn"]: address["fullAddress"] for address in json.loads(response.text)
@@ -212,6 +215,13 @@ class WasteCollections:
         _LOGGER.debug("Completed sorting bins")
 
         return next_collections
+
+
+class EmptyMatches(Warning):
+    """A warning to raise in case of no search matches."""
+
+    def __init__(self, message="No matches found"):
+        super().__init__(message)
 
 
 class Timeout(Exception):
