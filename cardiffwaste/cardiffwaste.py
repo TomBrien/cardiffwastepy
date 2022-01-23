@@ -9,11 +9,19 @@ import httpx
 from bs4 import BeautifulSoup
 from getuseragent import UserAgent
 
-from .const import (PAYLOAD_GET_JWT, URL_COLLECTIONS, URL_GET_JWT, URL_SEARCH,
-                    headers_get_jwt, headers_get_search_cookies,
-                    headers_get_waste_cookies, headers_search,
-                    headers_waste_collections, payload_search,
-                    payload_waste_collections)
+from .const import (
+    PAYLOAD_GET_JWT,
+    URL_COLLECTIONS,
+    URL_GET_JWT,
+    URL_SEARCH,
+    headers_get_jwt,
+    headers_get_search_cookies,
+    headers_get_waste_cookies,
+    headers_search,
+    headers_waste_collections,
+    payload_search,
+    payload_waste_collections,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -74,11 +82,16 @@ def address_search(search_term) -> list:
     """Helper to return UPRN matches from a partial address."""
 
     user_agent = UserAgent("desktop").Random()
+
+    _LOGGER.debug("Setting fake user agent to %s for address search", user_agent)
+
     jwt = _get_token(user_agent)
     client = _get_cookied_search_session(user_agent)
     headers_search["Authorization"] = f"Bearer {jwt}"
     headers_search["User-Agent"] = user_agent
     payload_search["searchTerm"] = search_term
+
+    _LOGGER.debug("Searching for address %s", search_term)
 
     response = client.request(
         "POST",
@@ -87,10 +100,16 @@ def address_search(search_term) -> list:
         data=json.dumps(payload_search),
     )
 
-    return [
+    _LOGGER.debug("Completed search with status code: %d", response.status_code)
+
+    matches = [
         {address["uprn"]: address["fullAddress"]}
         for address in json.loads(response.text)
     ]
+
+    _LOGGER.debug("Found %d matches", len(matches))
+
+    return matches
 
 
 class WasteCollections:
