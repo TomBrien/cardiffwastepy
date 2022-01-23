@@ -13,13 +13,106 @@ from .const import (
     PAYLOAD_GET_JWT,
     URL_COLLECTIONS,
     URL_GET_JWT,
+    URL_SEARCH,
     headers_get_jwt,
+    headers_get_search_cookies,
     headers_get_waste_cookies,
+    headers_search,
     headers_waste_collections,
+    payload_search,
     payload_waste_collections,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _get_cookied_search_session(user_agent) -> httpx.Client:
+    """Start a session and collect required cookies for searches."""
+
+    client = httpx.Client(timeout=2)
+    headers_get_waste_cookies["User-Agent"] = user_agent
+    _LOGGER.debug("Attempting to get collection cookies")
+    client.request("OPTIONS", URL_SEARCH, headers=headers_get_search_cookies)
+    _LOGGER.debug("Received %d cookies", len(client.cookies))
+    return client
+
+
+def _get_token(user_agent) -> str:
+    """Get an access token."""
+
+    _LOGGER.debug("Requesting JWT")
+    headers_get_jwt["User-Agent"] = user_agent
+    response = httpx.request(
+        "POST", URL_GET_JWT, headers=headers_get_jwt, data=PAYLOAD_GET_JWT
+    )
+    _LOGGER.debug("Completed JWT request with status code: %d", response.status_code)
+    xml = BeautifulSoup(response.text, "xml")
+    result = json.loads(xml.find("GetJWTResult").get_text())
+    return result["access_token"]
+
+
+def _tidy_bins(collection: dict, week: dict) -> dict:
+    """Generates a useful dictionary of bin collection details from raw response."""
+
+    _LOGGER.debug(
+        "Sorting %s bin with "
+        "collection date: %s, "
+        "collection type: %s and "
+        "image %s",
+        collection["type"],
+        week["date"],
+        collection["collectionType"],
+        collection["imageUrl"],
+    )
+
+    sorted_bin: dict = {}
+    sorted_bin["date"] = datetime.datetime.strptime(
+        week["date"], "%Y-%m-%dT%H:%M:%S"
+    ).date()
+    sorted_bin["type"] = collection["collectionType"].lower()
+    if sorted_bin["type"] == "standard":
+        sorted_bin["type"] = "scheduled"
+    elif sorted_bin["type"] == "moved":
+        sorted_bin["type"] = "rescheduled"
+    sorted_bin["image"] = collection["imageUrl"]
+    return sorted_bin
+
+
+def address_search(search_term: str) -> dict[int, str]:
+    """Helper to return UPRN matches from a partial address."""
+
+    user_agent = UserAgent("desktop").Random()
+
+    _LOGGER.debug("Setting fake user agent to %s for address search", user_agent)
+
+    jwt = _get_token(user_agent)
+    client = _get_cookied_search_session(user_agent)
+    headers_search["Authorization"] = f"Bearer {jwt}"
+    headers_search["User-Agent"] = user_agent
+    payload_search["searchTerm"] = search_term
+
+    _LOGGER.debug("Searching for address %s", search_term)
+    try:
+        response = client.request(
+            "POST",
+            URL_SEARCH,
+            headers=headers_search,
+            data=json.dumps(payload_search),
+        )
+        _LOGGER.debug("Completed search with status code: %d", response.status_code)
+    except httpx.ReadTimeout as search_timed_out:
+        _LOGGER.warning("Timed out searching for address %s", search_term)
+        raise Timeout(
+            f"Timed out searching for address {search_term}"
+        ) from search_timed_out
+
+    matches = {
+        address["uprn"]: address["fullAddress"] for address in json.loads(response.text)
+    }
+
+    _LOGGER.debug("Found %d matches", len(matches))
+
+    return matches
 
 
 class WasteCollections:
@@ -32,23 +125,8 @@ class WasteCollections:
         self._user_agent: str = UserAgent("desktop").Random()
         _LOGGER.debug("Setting fake user agent to: %s", self._user_agent)
 
-    def _get_token(self) -> str:
-        """Get an access token."""
-
-        _LOGGER.debug("Requesting JWT")
-        headers_get_jwt["User-Agent"] = self._user_agent
-        response = httpx.request(
-            "POST", URL_GET_JWT, headers=headers_get_jwt, data=PAYLOAD_GET_JWT
-        )
-        _LOGGER.debug(
-            "Completed JWT request with status code: %d", response.status_code
-        )
-        xml = BeautifulSoup(response.text, "xml")
-        result = json.loads(xml.find("GetJWTResult").get_text())
-        return result["access_token"]
-
-    def _get_cookied_session(self) -> httpx.Client:
-        """Start a session and collect required cookies."""
+    def _get_cookied_collection_session(self) -> httpx.Client:
+        """Start a session and collect required cookies for collection."""
 
         client = httpx.Client()
         headers_get_waste_cookies["User-Agent"] = self._user_agent
@@ -60,8 +138,8 @@ class WasteCollections:
     def get_raw_collections(self) -> dict:
         """Get all known collections from API and do minimal tidying."""
 
-        jwt = self._get_token()
-        client = self._get_cookied_session()
+        jwt = _get_token(self._user_agent)
+        client = self._get_cookied_collection_session()
         headers_waste_collections["Authorization"] = f"Bearer {jwt}"
         headers_waste_collections["User-Agent"] = self._user_agent
         payload_waste_collections["uprn"] = self.uprn
@@ -84,8 +162,8 @@ class WasteCollections:
     def check_valid_uprn(self) -> bool:
         """Helper to check if UPRN returns valid data."""
 
-        jwt = self._get_token()
-        client = self._get_cookied_session()
+        jwt = _get_token(self._user_agent)
+        client = self._get_cookied_collection_session()
         headers_waste_collections["Authorization"] = f"Bearer {jwt}"
         headers_waste_collections["User-Agent"] = self._user_agent
         payload_waste_collections["uprn"] = self.uprn
@@ -136,28 +214,8 @@ class WasteCollections:
         return next_collections
 
 
-def _tidy_bins(collection: dict, week: dict) -> dict:
-    """Generates a useful dictionary of bin collection details from raw response."""
+class Timeout(Exception):
+    """A class to report a timeout issue."""
 
-    _LOGGER.debug(
-        "Sorting %s bin with "
-        "collection date: %s, "
-        "collection type: %s and "
-        "image %s",
-        collection["type"],
-        week["date"],
-        collection["collectionType"],
-        collection["imageUrl"],
-    )
-
-    sorted_bin: dict = {}
-    sorted_bin["date"] = datetime.datetime.strptime(
-        week["date"], "%Y-%m-%dT%H:%M:%S"
-    ).date()
-    sorted_bin["type"] = collection["collectionType"].lower()
-    if sorted_bin["type"] == "standard":
-        sorted_bin["type"] = "scheduled"
-    elif sorted_bin["type"] == "moved":
-        sorted_bin["type"] = "rescheduled"
-    sorted_bin["image"] = collection["imageUrl"]
-    return sorted_bin
+    def __init__(self, message="Timed out searching address"):
+        super().__init__(message)
