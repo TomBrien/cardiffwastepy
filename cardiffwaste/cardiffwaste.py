@@ -29,7 +29,7 @@ _LOGGER = logging.getLogger(__name__)
 def _get_cookied_search_session(user_agent) -> httpx.Client:
     """Start a session and collect required cookies for searches."""
 
-    client = httpx.Client(timeout=2)
+    client = httpx.Client(timeout=20)
     headers_get_waste_cookies["User-Agent"] = user_agent
     _LOGGER.debug("Attempting to get collection cookies")
     client.request("OPTIONS", URL_SEARCH, headers=headers_get_search_cookies)
