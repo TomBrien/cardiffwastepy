@@ -114,6 +114,10 @@ def address_search(search_term: str) -> dict[int, str]:
 
     return matches
 
+    _LOGGER.debug("Found %d matches", len(matches))
+
+    return matches
+
 
 class WasteCollections:
     """Get and store details of waste collections."""
