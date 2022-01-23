@@ -106,6 +106,9 @@ def address_search(search_term: str) -> dict[int, str]:
             f"Timed out searching for address {search_term}"
         ) from search_timed_out
 
+    if response.status_code == 204:
+        raise EmptyMatches(message=f"No matches for {search_term}")
+
     matches = {
         address["uprn"]: address["fullAddress"] for address in json.loads(response.text)
     }
@@ -212,6 +215,13 @@ class WasteCollections:
         _LOGGER.debug("Completed sorting bins")
 
         return next_collections
+
+
+class EmptyMatches(Warning):
+    """A warning to raise in case of no search matches."""
+
+    def __init__(self, message="No matches found"):
+        super().__init__(message)
 
 
 class Timeout(Exception):
