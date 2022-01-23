@@ -13,13 +13,70 @@ from .const import (
     PAYLOAD_GET_JWT,
     URL_COLLECTIONS,
     URL_GET_JWT,
+    URL_SEARCH,
     headers_get_jwt,
+    headers_get_search_cookies,
     headers_get_waste_cookies,
+    headers_search,
     headers_waste_collections,
+    payload_search,
     payload_waste_collections,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def get_token(user_agent) -> str:
+    """Get an access token."""
+
+    _LOGGER.debug("Requesting JWT")
+    headers_get_jwt["User-Agent"] = user_agent
+    response = httpx.request(
+        "POST", URL_GET_JWT, headers=headers_get_jwt, data=PAYLOAD_GET_JWT
+    )
+    _LOGGER.debug("Completed JWT request with status code: %d", response.status_code)
+    xml = BeautifulSoup(response.text, "xml")
+    result = json.loads(xml.find("GetJWTResult").get_text())
+    return result["access_token"]
+
+
+class AddressSearch:
+    """Address lookup."""
+
+    def __init__(self):
+        """Start with faking user agent"""
+        self._user_agent: str = UserAgent("desktop").Random()
+
+    def _get_cookied_search_session(self) -> httpx.Client:
+        """Start a session and collect required cookies for searches."""
+
+        client = httpx.Client()
+        headers_get_waste_cookies["User-Agent"] = self._user_agent
+        _LOGGER.debug("Attempting to get collection cookies")
+        client.request("OPTIONS", URL_SEARCH, headers=headers_get_search_cookies)
+        _LOGGER.debug("Received %d cookies", len(client.cookies))
+        return client
+
+    def address_search(self, search) -> list:
+        """Helper to return UPRN matches from a partial address."""
+
+        jwt = get_token(self._user_agent)
+        client = self._get_cookied_search_session()
+        headers_search["Authorization"] = f"Bearer {jwt}"
+        headers_search["User-Agent"] = self._user_agent
+        payload_search["searchTerm"] = search
+
+        response = client.request(
+            "POST",
+            URL_SEARCH,
+            headers=headers_search,
+            data=json.dumps(payload_search),
+        )
+
+        return [
+            {address["uprn"]: address["fullAddress"]}
+            for address in json.loads(response.text)
+        ]
 
 
 class WasteCollections:
@@ -32,23 +89,8 @@ class WasteCollections:
         self._user_agent: str = UserAgent("desktop").Random()
         _LOGGER.debug("Setting fake user agent to: %s", self._user_agent)
 
-    def _get_token(self) -> str:
-        """Get an access token."""
-
-        _LOGGER.debug("Requesting JWT")
-        headers_get_jwt["User-Agent"] = self._user_agent
-        response = httpx.request(
-            "POST", URL_GET_JWT, headers=headers_get_jwt, data=PAYLOAD_GET_JWT
-        )
-        _LOGGER.debug(
-            "Completed JWT request with status code: %d", response.status_code
-        )
-        xml = BeautifulSoup(response.text, "xml")
-        result = json.loads(xml.find("GetJWTResult").get_text())
-        return result["access_token"]
-
-    def _get_cookied_session(self) -> httpx.Client:
-        """Start a session and collect required cookies."""
+    def _get_cookied_collection_session(self) -> httpx.Client:
+        """Start a session and collect required cookies for collection."""
 
         client = httpx.Client()
         headers_get_waste_cookies["User-Agent"] = self._user_agent
@@ -60,8 +102,8 @@ class WasteCollections:
     def get_raw_collections(self) -> dict:
         """Get all known collections from API and do minimal tidying."""
 
-        jwt = self._get_token()
-        client = self._get_cookied_session()
+        jwt = get_token(self._user_agent)
+        client = self._get_cookied_collection_session()
         headers_waste_collections["Authorization"] = f"Bearer {jwt}"
         headers_waste_collections["User-Agent"] = self._user_agent
         payload_waste_collections["uprn"] = self.uprn
@@ -84,8 +126,8 @@ class WasteCollections:
     def check_valid_uprn(self) -> bool:
         """Helper to check if UPRN returns valid data."""
 
-        jwt = self._get_token()
-        client = self._get_cookied_session()
+        jwt = self._get_token(self._user_agent)
+        client = self._get_cookied_collection_session()
         headers_waste_collections["Authorization"] = f"Bearer {jwt}"
         headers_waste_collections["User-Agent"] = self._user_agent
         payload_waste_collections["uprn"] = self.uprn
