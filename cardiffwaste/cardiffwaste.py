@@ -112,12 +112,6 @@ def address_search(search_term: str) -> dict[int, str]:
 
     _LOGGER.debug("Found %d matches", len(matches))
 
-    matches = {
-        address["uprn"]: address["fullAddress"] for address in json.loads(response.text)
-    }
-
-    _LOGGER.debug("Found %d matches", len(matches))
-
     return matches
 
 
