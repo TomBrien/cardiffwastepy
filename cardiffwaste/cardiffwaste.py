@@ -29,7 +29,7 @@ _LOGGER = logging.getLogger(__name__)
 def _get_cookied_search_session(user_agent) -> httpx.Client:
     """Start a session and collect required cookies for searches."""
 
-    client = httpx.Client()
+    client = httpx.Client(timeout=2)
     headers_get_waste_cookies["User-Agent"] = user_agent
     _LOGGER.debug("Attempting to get collection cookies")
     client.request("OPTIONS", URL_SEARCH, headers=headers_get_search_cookies)
@@ -92,15 +92,19 @@ def address_search(search_term: str) -> dict[int, str]:
     payload_search["searchTerm"] = search_term
 
     _LOGGER.debug("Searching for address %s", search_term)
-
-    response = client.request(
-        "POST",
-        URL_SEARCH,
-        headers=headers_search,
-        data=json.dumps(payload_search),
-    )
-
-    _LOGGER.debug("Completed search with status code: %d", response.status_code)
+    try:
+        response = client.request(
+            "POST",
+            URL_SEARCH,
+            headers=headers_search,
+            data=json.dumps(payload_search),
+        )
+        _LOGGER.debug("Completed search with status code: %d", response.status_code)
+    except httpx.ReadTimeout as search_timed_out:
+        _LOGGER.warning("Timed out searching for address %s", search_term)
+        raise Timeout(
+            f"Timed out searching for address {search_term}"
+        ) from search_timed_out
 
     matches = {
         address["uprn"]: address["fullAddress"] for address in json.loads(response.text)
@@ -208,3 +212,10 @@ class WasteCollections:
         _LOGGER.debug("Completed sorting bins")
 
         return next_collections
+
+
+class Timeout(Exception):
+    """A class to report a timeout issue."""
+
+    def __init__(self, message="Timed out searching address"):
+        super().__init__(message)
