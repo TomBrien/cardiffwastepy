@@ -78,7 +78,7 @@ def _tidy_bins(collection: dict, week: dict) -> dict:
     return sorted_bin
 
 
-def address_search(search_term) -> list:
+def address_search(search_term: str) -> dict[int, str]:
     """Helper to return UPRN matches from a partial address."""
 
     user_agent = UserAgent("desktop").Random()
@@ -102,10 +102,9 @@ def address_search(search_term) -> list:
 
     _LOGGER.debug("Completed search with status code: %d", response.status_code)
 
-    matches = [
-        {address["uprn"]: address["fullAddress"]}
-        for address in json.loads(response.text)
-    ]
+    matches = {
+        address["uprn"]: address["fullAddress"] for address in json.loads(response.text)
+    }
 
     _LOGGER.debug("Found %d matches", len(matches))
 
