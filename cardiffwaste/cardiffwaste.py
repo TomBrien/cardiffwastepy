@@ -75,6 +75,7 @@ def _tidy_bins(collection: dict, week: dict) -> dict:
     elif sorted_bin["type"] == "moved":
         sorted_bin["type"] = "rescheduled"
     sorted_bin["image"] = collection["imageUrl"]
+    sorted_bin["last_update_utc"] = datetime.datetime.utcnow()
     return sorted_bin
 
 
