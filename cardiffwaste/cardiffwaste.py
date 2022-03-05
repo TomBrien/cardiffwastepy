@@ -148,12 +148,16 @@ class WasteCollections:
         headers_waste_collections["User-Agent"] = self._user_agent
         payload_waste_collections["uprn"] = self.uprn
         _LOGGER.debug("Attempting to get collection data")
-        response = client.request(
-            "POST",
-            URL_COLLECTIONS,
-            headers=headers_waste_collections,
-            data=json.dumps(payload_waste_collections),
-        )
+        try:
+            response = client.request(
+                "POST",
+                URL_COLLECTIONS,
+                headers=headers_waste_collections,
+                data=json.dumps(payload_waste_collections),
+            )
+        except httpx.ReadTimeout:
+            raise Timeout(message="Timed out reading response")
+
         _LOGGER.debug(
             "Completed collection data request with status code: %d",
             response.status_code,
