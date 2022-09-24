@@ -1,5 +1,9 @@
 """Initiate directory"""
+from json import JSONDecodeError
+
 from cardiffwaste.cardiffwaste import (
+    ConnectionError,
+    DecodeFailed,
     EmptyMatches,
     Timeout,
     WasteCollections,

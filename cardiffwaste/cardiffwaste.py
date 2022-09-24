@@ -42,12 +42,24 @@ def _get_token(user_agent) -> str:
 
     _LOGGER.debug("Requesting JWT")
     headers_get_jwt["User-Agent"] = user_agent
-    response = httpx.request(
-        "POST", URL_GET_JWT, headers=headers_get_jwt, data=PAYLOAD_GET_JWT
-    )
+    try:
+        response = httpx.request(
+            "POST", URL_GET_JWT, headers=headers_get_jwt, data=PAYLOAD_GET_JWT
+        )
+    except httpx.ConnectError as connection_error:
+        _LOGGER.error("Unable to connect to %s", URL_GET_JWT)
+        raise ConnectionError(
+            f"Unable to connect to {URL_GET_JWT} with user agent {user_agent}"
+        ) from connection_error
     _LOGGER.debug("Completed JWT request with status code: %d", response.status_code)
     xml = BeautifulSoup(response.text, "xml")
-    result = json.loads(xml.find("GetJWTResult").get_text())
+    try:
+        result = json.loads(xml.find("GetJWTResult").get_text())
+    except json.JSONDecodeError as json_error:
+        _LOGGER.error("Unable to decode JWT response")
+        raise DecodeFailed(
+            f"Unable to decode JWT response, user agent was {user_agent}"
+        ) from json_error
     return result["access_token"]
 
 
@@ -229,4 +241,18 @@ class Timeout(Exception):
     """A class to report a timeout issue."""
 
     def __init__(self, message="Timed out searching address"):
+        super().__init__(message)
+
+
+class DecodeFailed(Exception):
+    """A class to report a timeout issue."""
+
+    def __init__(self, message="Failed to decode JSON"):
+        super().__init__(message)
+
+
+class ConnectionError(Exception):
+    """A class to report a connection issue."""
+
+    def __init__(self, message="Failed to connect to API"):
         super().__init__(message)
