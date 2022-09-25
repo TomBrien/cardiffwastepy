@@ -140,11 +140,12 @@ class WasteCollections:
         self.uprn: int = int(uprn) if isinstance(uprn, str) else uprn
         self._user_agent: str = UserAgent("desktop").Random()
         _LOGGER.debug("Setting fake user agent to: %s", self._user_agent)
+        self._bin_store: dict[str, dict] = {}
 
     def _get_cookied_collection_session(self) -> httpx.Client:
         """Start a session and collect required cookies for collection."""
 
-        client = httpx.Client()
+        client = httpx.Client(timeout=60)
         headers_get_waste_cookies["User-Agent"] = self._user_agent
         _LOGGER.debug("Attempting to get collection cookies")
         client.request("OPTIONS", URL_COLLECTIONS, headers=headers_get_waste_cookies)
@@ -167,6 +168,7 @@ class WasteCollections:
                 headers=headers_waste_collections,
                 data=json.dumps(payload_waste_collections),
             )
+<<<<<<< HEAD
         except httpx.ReadTimeout:
             raise Timeout(message="Timed out reading response")
 
@@ -178,6 +180,19 @@ class WasteCollections:
         raw["collections"] = json.loads(response.text)["collectionWeeks"]
         raw["response_code"] = response.status_code
         return raw
+=======
+            _LOGGER.debug(
+                "Completed collection data request with status code: %d",
+                response.status_code,
+            )
+            raw = {}
+            raw["collections"] = json.loads(response.text)["collectionWeeks"]
+            raw["response_code"] = response.status_code
+            return raw
+        except httpx.ReadTimeout as err:
+            _LOGGER.warning("Timed out getting collection data")
+            raise Timeout("Timed out getting collection data") from err
+>>>>>>> 9ef802b (Imporve timeout handling)
 
     def check_valid_uprn(self) -> bool:
         """Helper to check if UPRN returns valid data."""
@@ -228,10 +243,17 @@ class WasteCollections:
                             "type is already present",
                             collection["type"],
                         )
+            self._bin_store = next_collections
+            _LOGGER.debug("Completed sorting bins")
 
-        _LOGGER.debug("Completed sorting bins")
+        else:
+            _LOGGER.warning(
+                "Error getting collection data, response code: %d. "
+                "Using previous data if available.",
+                response["response_code"],
+            )
 
-        return next_collections
+        return self._bin_store
 
 
 class EmptyMatches(Warning):
