@@ -29,7 +29,7 @@ _LOGGER = logging.getLogger(__name__)
 def _get_cookied_search_session(user_agent) -> httpx.Client:
     """Start a session and collect required cookies for searches."""
 
-    client = httpx.Client(timeout=20)
+    client = httpx.Client(timeout=120)
     headers_get_waste_cookies["User-Agent"] = user_agent
     _LOGGER.debug("Attempting to get collection cookies")
     client.request("OPTIONS", URL_SEARCH, headers=headers_get_search_cookies)
@@ -140,11 +140,12 @@ class WasteCollections:
         self.uprn: int = int(uprn) if isinstance(uprn, str) else uprn
         self._user_agent: str = UserAgent("desktop").Random()
         _LOGGER.debug("Setting fake user agent to: %s", self._user_agent)
+        self._bin_store: dict[str, dict] = {}
 
     def _get_cookied_collection_session(self) -> httpx.Client:
         """Start a session and collect required cookies for collection."""
 
-        client = httpx.Client()
+        client = httpx.Client(timeout=120)
         headers_get_waste_cookies["User-Agent"] = self._user_agent
         _LOGGER.debug("Attempting to get collection cookies")
         client.request("OPTIONS", URL_COLLECTIONS, headers=headers_get_waste_cookies)
@@ -167,8 +168,8 @@ class WasteCollections:
                 headers=headers_waste_collections,
                 data=json.dumps(payload_waste_collections),
             )
-        except httpx.ReadTimeout:
-            raise Timeout(message="Timed out reading response")
+        except httpx.ReadTimeout as err:
+            raise Timeout(message="Timed out reading response") from err
 
         _LOGGER.debug(
             "Completed collection data request with status code: %d",
@@ -209,8 +210,15 @@ class WasteCollections:
         _LOGGER.debug("Starting sorting bins")
 
         next_collections = {}
-
-        response = self.get_raw_collections()
+        try:
+            response = self.get_raw_collections()
+        except Timeout as err:
+            _LOGGER.warning(
+                "Timed out getting collection data with error: %s, "
+                "using stored data,",
+                err,
+            )
+            return self._bin_store
 
         if response["response_code"] == 200:
             for week in response["collections"]:
@@ -230,6 +238,8 @@ class WasteCollections:
                         )
 
         _LOGGER.debug("Completed sorting bins")
+
+        self._bin_store = next_collections
 
         return next_collections
 
