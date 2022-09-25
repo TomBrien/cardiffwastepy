@@ -271,7 +271,7 @@ class Timeout(Exception):
 
 
 class DecodeFailed(Exception):
-    """A class to report a timeout issue."""
+    """A class to report a JSOn Decoding issue."""
 
     def __init__(self, message="Failed to decode JSON"):
         super().__init__(message)
