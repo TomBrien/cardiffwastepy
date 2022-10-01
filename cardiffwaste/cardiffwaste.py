@@ -236,6 +236,19 @@ class WasteCollections:
                             "type is already present",
                             collection["type"],
                         )
+        elif self._bin_store:
+            _LOGGER.warning(
+                "Received response code %d, using stored data",
+                response["response_code"],
+            )
+            return self._bin_store
+
+        else:
+            _LOGGER.warning(
+                "Received response code %d, no stored data to return",
+                response["response_code"],
+            )
+            raise ConnectionError(message="No stored data to return")
 
         _LOGGER.debug("Completed sorting bins")
 
