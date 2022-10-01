@@ -218,7 +218,14 @@ class WasteCollections:
                 "using stored data,",
                 err,
             )
-            return self._bin_store
+            if self._bin_store:
+                _LOGGER.warning(
+                    "Received response code %d, using stored data",
+                    response["response_code"],
+                )
+                return self._bin_store
+            else:
+                raise Timeout(message="Timed out getting collection data") from err
 
         if response["response_code"] == 200:
             for week in response["collections"]:
@@ -248,7 +255,10 @@ class WasteCollections:
                 "Received response code %d, no stored data to return",
                 response["response_code"],
             )
-            raise ConnectionError(message="No stored data to return")
+            raise ConnectionError(
+                message=f"Received code {response['response_code']}, "
+                "no stored data to return"
+            )
 
         _LOGGER.debug("Completed sorting bins")
 
